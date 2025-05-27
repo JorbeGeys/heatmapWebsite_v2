@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>C.A.V.A. - Drone Trash Detection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background-color: #E63034;
+      color: white;
+      overflow-x: hidden;
+    }
+
+    h1, h2 {
+      color: white;
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    h1 {
+      font-size: 2em;
+      font-weight: 700;
+    }
+
+    h2 {
+      color: #A3509F;
+      font-weight: 600;
+    }
+
+    #imageUpload, button {
+      display: block;
+      margin: 20px auto;
+      font-size: 1em;
+    }
+
+    #csvUpload, button {
+      display: block;
+      margin: 20px auto;
+      font-size: 1em;
+    }
+
+    button {
+      background-color: #A3509F;
+      border: none;
+      padding: 10px 20px;
+      color: white;
+      font-weight: bold;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #8e3c87;
+    }
+
+    #fileInfo, #loadingStatus {
+      text-align: center;
+      margin: 10px auto;
+      max-width: 80%;
+    }
+
+    .loading {
+      color: orange;
+    }
+
+    .success {
+      color: #00ffcc;
+    }
+
+    img {
+      max-width: 300px;
+      height: auto;
+      margin: 10px;
+      border: 4px solid #402B0F;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+
+    img:hover {
+      transform: scale(1.05);
+    }
+
+    #imageContainer, #mosaicContainer, #heatmapContainer {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin: 20px;
+    }
+
+    #imageContainer > div {
+      text-align: center;
+      max-width: 320px;
+      margin-bottom: 20px;
+    }
+
+    body::before, body::after {
+      content: '';
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background-color: #A3509F;
+      border-radius: 50%;
+      z-index: -1;
+      filter: blur(100px);
+    }
+
+    body::before {
+      top: -100px;
+      left: -100px;
+    }
+
+    body::after {
+      bottom: -100px;
+      right: -100px;
+    }
+
+    footer {
+      color: white;
+      text-align: center;
+      font-size: 0.9em;
+      max-width: 500px;
+      margin: 40px auto;
+      line-height: 1.5;
+    }
+
+    .fullscreen-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      overflow: hidden;
+    }
+
+    .fullscreen-overlay img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+      border-radius: 0.75rem;
+      border: none;
+      margin: 0;
+    }
+
+    .close-button {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 2rem;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      cursor: pointer;
+      z-index: 1001;
+      transition: background-color 0.3s ease;
+    }
+
+    .close-button:hover {
+      background-color: rgba(255, 255, 255, 0.4);
+    }
+  </style>
+</head>
+<body>
+  <h1>C.A.V.A.</h1>
+  <h2>Clean. Autonomous. Vision. Acquisition</h2>
+
+  <input type="file" id="imageUpload" multiple>
+  <p id="fileInfo"></p>
+  
+  <input type="file" id="csvUpload" accept=".csv" />
+  <button onclick="displayImages()">Submit</button>
+
+  <button><a href="static/clusters_map.html">clusters_map</a></button>
+
+  <p id="loadingStatus"></p>
+
+  <h2>Detection Results:</h2>
+  <div id="imageContainer"></div>
+
+  <h2>Stitched Mosaic:</h2>
+  <div id="mosaicContainer"></div>
+
+  <h2>Heatmap:</h2>
+  <div id="heatmapContainer"></div>
+
+  <footer>
+    Elk festival zorgt op korte tijd voor enorm veel afval dat verzameld moet worden.
+    Dit is duur en arbeidsintensief. C.A.V.A. is de oplossing hiervoor.
+  </footer>
+
+  <div id="fullscreenOverlay" class="fullscreen-overlay">
+    <span class="close-button" onclick="closeFullscreenImage()">&times;</span>
+    <img id="fullscreenImage" src="" alt="Fullscreen Image">
+  </div>
+
+  <script>
+  const fileInput = document.getElementById('imageUpload');
+  const csvInput = document.getElementById('csvUpload');
+  const imageContainer = document.getElementById('imageContainer');
+  const mosaicContainer = document.getElementById('mosaicContainer');
+  const heatmapContainer = document.getElementById('heatmapContainer');
+  const loadingStatus = document.getElementById('loadingStatus');
+  const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+  const fullscreenImage = document.getElementById('fullscreenImage');
+
+  function openFullscreenImage(imageUrl) {
+    fullscreenImage.src = imageUrl;
+    fullscreenOverlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeFullscreenImage() {
+    fullscreenOverlay.style.display = 'none';
+    fullscreenImage.src = '';
+    document.body.style.overflow = 'auto';
+  }
+
+  fullscreenOverlay.addEventListener('click', (event) => {
+    if (event.target === fullscreenOverlay) {
+      closeFullscreenImage();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && fullscreenOverlay.style.display === 'flex') {
+      closeFullscreenImage();
+    }
+  });
+
+  async function displayImages() {
+  imageContainer.innerHTML = "";
+  mosaicContainer.innerHTML = "";
+  heatmapContainer.innerHTML = "";
+  loadingStatus.className = "loading";
+  loadingStatus.textContent = "Uploading images and CSV...";
+
+  const imageFiles = fileInput.files;
+  const csvFile = csvInput.files[0];
+
+  if (!imageFiles.length) {
+    loadingStatus.textContent = "Please select some images first.";
+    loadingStatus.className = "";
+    return;
+  }
+
+  if (!csvFile) {
+    loadingStatus.textContent = "Please upload a CSV file.";
+    loadingStatus.className = "";
+    return;
+  }
+
+  const formData = new FormData();
+  for (let i = 0; i < imageFiles.length; i++) {
+    formData.append('images', imageFiles[i]);
+  }
+  formData.append('csv_file', csvFile);
+
+  try {
+    const response = await fetch('http://127.0.0.1:5500/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server returned status ${response.status}`);
+    }
+
+    loadingStatus.textContent = "Processing detections and generating outputs...";
+
+    const data = await response.json();  // Wait until the full JSON is received
+    loadingStatus.textContent = "Done!";
+    loadingStatus.className = "success";
+
+    if (data.annotated_images_meta && Array.isArray(data.annotated_images_meta)) {
+      data.annotated_images_meta.forEach((imgMeta, index) => {
+        const annotationCount = imgMeta.bounding_boxes.length;
+        const imgWrapper = document.createElement('div');
+
+        const imgElement = document.createElement('img');
+        imgElement.src = imgMeta.url;
+        imgElement.alt = imgMeta.filename;
+        imgElement.onclick = () => openFullscreenImage(imgElement.src);
+
+        const annotationInfo = document.createElement('div');
+        annotationInfo.style.color = '#00ffcc';
+        annotationInfo.style.fontSize = '0.9em';
+        annotationInfo.style.marginTop = '0.5em';
+
+        const annotations = imgMeta.bounding_boxes || [];
+        const count = annotations.length;
+
+        annotationInfo.innerHTML = `<strong>${count} annotation${count !== 1 ? 's' : ''}</strong><br/>`;
+        annotations.forEach((ann, idx) => {
+          const xCenter = Math.round((ann.x_min + ann.x_max) / 2);
+          const yCenter = Math.round((ann.y_min + ann.y_max) / 2);
+          annotationInfo.innerHTML += `#${idx + 1}: object at (${xCenter}, ${yCenter})<br/>`;
+        });
+
+        imgWrapper.appendChild(imgElement);
+        imgWrapper.appendChild(annotationInfo);
+        imageContainer.appendChild(imgWrapper);
+      });
+    }
+
+    if (data.mosaic && data.mosaic.web_png) {
+      const mosaicImg = document.createElement('img');
+      mosaicImg.src = `http://127.0.0.1:5500/mosaic/${data.mosaic.web_png}`;
+      mosaicImg.alt = "Stitched Mosaic (Web Resolution)";
+      mosaicImg.onclick = () => openFullscreenImage(mosaicImg.src);
+      mosaicContainer.appendChild(mosaicImg);
+
+      if (data.mosaic.full_tif) {
+        const downloadLink = document.createElement('a');
+        downloadLink.href = `http://127.0.0.1:5500/mosaic/${data.mosaic.full_tif}`;
+        downloadLink.textContent = "Download Full Resolution Mosaic (TIFF)";
+        downloadLink.download = data.mosaic.full_tif;
+        downloadLink.style.display = 'block';
+        downloadLink.style.marginTop = '10px';
+        downloadLink.style.textAlign = 'center';
+        downloadLink.style.color = '#A3509F';
+        downloadLink.style.textDecoration = 'underline';
+        mosaicContainer.appendChild(downloadLink);
+      }
+    }
+
+    if (data.heatmap) {
+      const heatmapImg = document.createElement('img');
+      heatmapImg.src = `http://127.0.0.1:5500/mosaic/${data.heatmap}`;
+      heatmapImg.alt = "Heatmap";
+      heatmapImg.onclick = () => openFullscreenImage(heatmapImg.src);
+      heatmapContainer.appendChild(heatmapImg);
+    }
+
+  } catch (error) {
+    loadingStatus.textContent = "An error occurred during upload or processing.";
+    loadingStatus.className = "";
+    console.error('❌ Error uploading files:', error);
+  }
+}
+
+</script>
+
+</body>
+</html>

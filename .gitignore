@@ -1,0 +1,29 @@
+# Media files
+*.jpg
+*.png
+
+# Data files
+*.csv
+
+# Python environments
+venv/
+env/
+.venv/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+
+# Node.js dependencies
+node_modules/
+
+# Environment variable files
+.env
+
+# macOS system file
+.DS_Store
+
+# Project-specific folders
+odm_projects/
+dist/
+build/
