@@ -10,8 +10,6 @@ import inference
 import supervision as sv
 import cv2
 import numpy as np
-import io
-import base64
 import os
 from PIL import Image, ImageFile # Import ImageFile
 import traceback
@@ -19,7 +17,8 @@ import subprocess
 import shutil
 import uuid # Import uuid for generating unique project names
 from process_flight_log import extract_filtered_coordinates
-from triangulate import cluster_annotations, visualize_clusters_on_map
+from triangulate import cluster_annotations
+import math
 
 
 # Set Pillow's maximum image pixel limit to a higher value
@@ -34,7 +33,7 @@ ODM_PROJECTS_BASE_DIR = 'odm_projects'
 ANNOTATED_OUTPUT_DIR = 'annotated_images_output'
 
 # Initialize your model (ensure inference.py and API key are correctly set up)
-model = inference.get_model("self-trained-garbage-detection/3", api_key="OoQrsMuOLaZZkrcxNM9q")
+model = inference.get_model("self-trained-garbage-detection/6", api_key="OoQrsMuOLaZZkrcxNM9q")
 
 # The image_coordinates are now solely imported from coordinates.py
 # print(f"DEBUG: image_coordinates list has {len(image_coordinates)} entries.") # This print will be outside the function scope, better place it inside generate_heatmap or upload_images for clarity
@@ -86,15 +85,7 @@ def upload_images():
                     print(f"🧹 Cleaned up old data: {path_to_delete}")
                 except Exception as e:
                     print(f"⚠️ Couldn't delete old data {path_to_delete}: {e}")
-                    
-        # 🧼 Also delete clusters_map.html from project root if it exists
-    clusters_map_file = "static/clusters_map.html"
-    if os.path.exists(clusters_map_file):
-        try:
-            os.remove(clusters_map_file)
-            print(f"🧹 Cleanded up old cluster map: {clusters_map_file}")
-        except Exception as e:
-            print(f"⚠️ Couldn't delete {clusters_map_file}: {e}")
+            
 
     filtered_csv_data = extract_filtered_coordinates(uploaded_csv)
     
@@ -161,14 +152,18 @@ def upload_images():
     # Call run_odm_stitching to get the actual mosaic data
     mosaic_data = run_odm_stitching()
 
-
+    global clusterCenters
+    clusterCenters = []
+    
+    global mapShapePoints
+    mapShapePoints = []
     clusters = cluster_annotations(processed_image_urls)
-    visualize_clusters_on_map(clusters)
     # Pass image_count_map (filenames and counts) and image_coordinates to generate_heatmap
     # You can adjust marker_radius and blur_strength here for desired visual effect
     heatmap_filename = generate_heatmap(
         clusters,
-        grid_size=1000,
+        filtered_csv_data=filtered_csv_data,
+        grid_size=3840, #4k resolution
         marker_radius=30,
         blur_strength=25
     )
@@ -177,8 +172,10 @@ def upload_images():
     return jsonify({
         "annotated_images_meta": processed_image_urls,
         "mosaic": mosaic_data,
-        "heatmap": heatmap_filename, # This will now be a filename string
-        "object_counts": object_counts
+        "heatmap": heatmap_filename,
+        "object_counts": object_counts,
+        "clusterCenters": clusterCenters,
+        "mapShapePoints": mapShapePoints,
     })
 
 def run_odm_stitching():
@@ -301,7 +298,8 @@ def run_odm_stitching():
         traceback.print_exc()
         return None
 
-def generate_heatmap(clusters, grid_size=1000, marker_radius=10, blur_strength=25):
+
+def generate_heatmap(clusters, filtered_csv_data, grid_size, marker_radius, blur_strength):
     print("🔥 Generating geospatial heatmap from clusters...")
 
     try:
@@ -309,15 +307,49 @@ def generate_heatmap(clusters, grid_size=1000, marker_radius=10, blur_strength=2
             print("⚠️ No cluster data provided for heatmap generation. Returning None.")
             return None
 
+        print("🗂️filtered_csv_data", filtered_csv_data)
         # Extract all lat/lngs from the clusters
-        all_coords = [(item['lat'], item['lng']) for cluster in clusters for item in cluster]
+        #all_coords = [(item['lat'], item['lng']) for cluster in clusters for item in cluster]
+        all_coords = [(row[0], row[1]) for row in filtered_csv_data]
 
         # Calculate min/max lat/lng to define the bounding box of the map
         lats = [coord[0] for coord in all_coords]
         lngs = [coord[1] for coord in all_coords]
 
-        min_lat, max_lat = min(lats), max(lats)
-        min_lng, max_lng = min(lngs), max(lngs)
+        # Find full coordinates (lat, lng) for each extreme, preserving the pair
+        north = max(all_coords, key=lambda c: c[0])  # Highest latitude
+        south = min(all_coords, key=lambda c: c[0])  # Lowest latitude
+        east  = max(all_coords, key=lambda c: c[1])  # Highest longitude
+        west  = min(all_coords, key=lambda c: c[1])  # Lowest longitude
+        
+        # Now check if the easternmost point is the same as north or south
+        if east == north or east == south:
+            filteredeast = [coord for coord in all_coords if coord != east]
+            east = max(filteredeast, key=lambda c: c[1])
+        
+        # Now check if the westernmost point is the same as north or south
+        if west == north or west == south:
+            filteredwest = [coord for coord in all_coords if coord != west]
+            west = min(filteredwest, key=lambda c: c[1])
+            
+            
+        print("🌎north", north)
+        print("🌎east", east)
+        print("🌎south", south)
+        print("🌎west", west)
+        
+        mapShapePoints.append({ "lat": north[0], "lng": north[1] })
+        mapShapePoints.append({ "lat": east[0],  "lng": east[1]  })
+        mapShapePoints.append({ "lat": south[0], "lng": south[1] })
+        mapShapePoints.append({ "lat": west[0],  "lng": west[1]  })
+        mapShapePoints.append({ "lat": north[0], "lng": north[1] })  # to close the shape
+
+        # Also extract lat/lng values if needed
+        max_lat = north[0]
+        min_lat = south[0]
+        max_lng = east[1]
+        min_lng = west[1]
+
 
         print(f"📍 Heatmap Bounding Box: Lat Range ({min_lat:.6f}, {max_lat:.6f}), Lng Range ({min_lng:.6f}, {max_lng:.6f})")
 
@@ -339,14 +371,15 @@ def generate_heatmap(clusters, grid_size=1000, marker_radius=10, blur_strength=2
             cluster_center_lat = np.mean([item['lat'] for item in cluster])
             cluster_center_lng = np.mean([item['lng'] for item in cluster])
             y_grid, x_grid = latlng_to_grid_coords(cluster_center_lat, cluster_center_lng)
-
-            intensity = float(len(cluster)) * 20
+        
+            intensity = float(len(cluster)) * 1
+            
+            clusterCenters.append([cluster_center_lat, cluster_center_lng, intensity])
+            
             cv2.circle(heatmap, (x_grid, y_grid), marker_radius, intensity, thickness=cv2.FILLED)
 
-            print(f"📦 Cluster with {len(cluster)} annotations at ({cluster_center_lat:.6f}, {cluster_center_lng:.6f}) "
-                  f"mapped to grid ({y_grid}, {x_grid}) with intensity {intensity}")
             num_clusters += 1
-
+            
         print(f"✅ Processed {num_clusters} clusters for heatmap.")
         print(f"📊 Heatmap data (before blur): min={heatmap.min():.2f}, max={heatmap.max():.2f}, non-zero count={np.count_nonzero(heatmap)}")
 
@@ -361,6 +394,22 @@ def generate_heatmap(clusters, grid_size=1000, marker_radius=10, blur_strength=2
             normalized_heatmap = np.zeros((grid_size, grid_size), dtype=np.uint8)
 
         colored_heatmap = cv2.applyColorMap(normalized_heatmap, cv2.COLORMAP_JET)
+        
+        # --- Draw white lines connecting bounding box corners in order: north → east → south → west → north ---
+        north = latlng_to_grid_coords(*north)
+        east = latlng_to_grid_coords(*east)
+        south = latlng_to_grid_coords(*south)
+        west = latlng_to_grid_coords(*west)
+
+        # Define polygon points
+        corner_points = [north, east, south, west, north]
+
+        # Draw lines between the corners
+        for i in range(len(corner_points) - 1):
+            pt1 = (corner_points[i][1], corner_points[i][0])   # x, y
+            pt2 = (corner_points[i+1][1], corner_points[i+1][0]) # x, y
+            cv2.line(colored_heatmap, pt1, pt2, color=(255, 255, 255), thickness=2)
+
 
         heatmap_filename = f"heatmap_{uuid.uuid4().hex}.png"
         save_path = os.path.join(MOSAIC_DIR, heatmap_filename)
