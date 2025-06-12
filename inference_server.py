@@ -17,8 +17,17 @@ import subprocess
 import shutil
 import uuid # Import uuid for generating unique project names
 from process_flight_log import extract_filtered_coordinates
-from triangulate import cluster_annotations
+from triangulate import cluster_annotations, northernPoint, easthernPoint, southernPoint, westhernPoint
 import math
+from dotenv import load_dotenv
+from flask import Response
+import time
+
+# Load the .env file
+load_dotenv()
+
+# Now get the key
+ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY")
 
 
 # Set Pillow's maximum image pixel limit to a higher value
@@ -33,10 +42,8 @@ ODM_PROJECTS_BASE_DIR = 'odm_projects'
 ANNOTATED_OUTPUT_DIR = 'annotated_images_output'
 
 # Initialize your model (ensure inference.py and API key are correctly set up)
-model = inference.get_model("self-trained-garbage-detection/6", api_key="OoQrsMuOLaZZkrcxNM9q")
+model = inference.get_model("self-trained-garbage-detection/7", api_key=ROBOFLOW_API_KEY)
 
-# The image_coordinates are now solely imported from coordinates.py
-# print(f"DEBUG: image_coordinates list has {len(image_coordinates)} entries.") # This print will be outside the function scope, better place it inside generate_heatmap or upload_images for clarity
 
 @app.route('/')
 def index():
@@ -145,6 +152,7 @@ def upload_images():
             # Append filename and count for heatmap generation
             image_count_map.append((file.filename, count))
 
+
         except Exception as e:
             print(f"❌ Error processing {file.filename}: {e}")
             traceback.print_exc()
@@ -163,11 +171,14 @@ def upload_images():
     heatmap_filename = generate_heatmap(
         clusters,
         filtered_csv_data=filtered_csv_data,
-        grid_size=3840, #4k resolution
+        grid_size=3840,
         marker_radius=30,
         blur_strength=25
     )
-
+    
+    
+    if mapShapePoints == []:
+        print("❌❌❌ No mapShapePoints found ❌❌❌")
 
     return jsonify({
         "annotated_images_meta": processed_image_urls,
@@ -298,16 +309,17 @@ def run_odm_stitching():
         traceback.print_exc()
         return None
 
-
 def generate_heatmap(clusters, filtered_csv_data, grid_size, marker_radius, blur_strength):
     print("🔥 Generating geospatial heatmap from clusters...")
 
+    global mapShapePoints
+    global clusterCenters
+    
     try:
         if not clusters:
             print("⚠️ No cluster data provided for heatmap generation. Returning None.")
             return None
 
-        print("🗂️filtered_csv_data", filtered_csv_data)
         # Extract all lat/lngs from the clusters
         #all_coords = [(item['lat'], item['lng']) for cluster in clusters for item in cluster]
         all_coords = [(row[0], row[1]) for row in filtered_csv_data]
@@ -317,19 +329,19 @@ def generate_heatmap(clusters, filtered_csv_data, grid_size, marker_radius, blur
         lngs = [coord[1] for coord in all_coords]
 
         # Find full coordinates (lat, lng) for each extreme, preserving the pair
-        north = max(all_coords, key=lambda c: c[0])  # Highest latitude
-        south = min(all_coords, key=lambda c: c[0])  # Lowest latitude
-        east  = max(all_coords, key=lambda c: c[1])  # Highest longitude
-        west  = min(all_coords, key=lambda c: c[1])  # Lowest longitude
+        north = max(filtered_csv_data, key=lambda c: c[0])  # Highest latitude
+        south = min(filtered_csv_data, key=lambda c: c[0])  # Lowest latitude
+        east  = max(filtered_csv_data, key=lambda c: c[1])  # Highest longitude
+        west  = min(filtered_csv_data, key=lambda c: c[1])  # Lowest longitude
         
         # Now check if the easternmost point is the same as north or south
         if east == north or east == south:
-            filteredeast = [coord for coord in all_coords if coord != east]
+            filteredeast = [coord for coord in filtered_csv_data if coord != east]
             east = max(filteredeast, key=lambda c: c[1])
         
         # Now check if the westernmost point is the same as north or south
         if west == north or west == south:
-            filteredwest = [coord for coord in all_coords if coord != west]
+            filteredwest = [coord for coord in filtered_csv_data if coord != west]
             west = min(filteredwest, key=lambda c: c[1])
             
             
@@ -338,11 +350,28 @@ def generate_heatmap(clusters, filtered_csv_data, grid_size, marker_radius, blur
         print("🌎south", south)
         print("🌎west", west)
         
+        northernMostPoint = northernPoint(north[0], north[1], north[2], north[3])
+        easthernMostPoint = easthernPoint(east[0], east[1], east[2], east[3])
+        southernMostPoint = southernPoint(south[0], south[1], south[2], south[3])
+        westhernMostPoint = westhernPoint(west[0], west[1], west[2], west[3])
+        
+        north = (northernMostPoint, north[1], north[2], north[3])
+        east = (east[0], easthernMostPoint, east[2], east[3])
+        south = (southernMostPoint, south[1], south[2], south[3])
+        west = (west[0], westhernMostPoint, west[2], west[3])
+        
+        print("🌎north", north)
+        print("🌎east", east)
+        print("🌎south", south)
+        print("🌎west", west)
+        
+        mapShapePoints = []
+        
         mapShapePoints.append({ "lat": north[0], "lng": north[1] })
         mapShapePoints.append({ "lat": east[0],  "lng": east[1]  })
         mapShapePoints.append({ "lat": south[0], "lng": south[1] })
         mapShapePoints.append({ "lat": west[0],  "lng": west[1]  })
-        mapShapePoints.append({ "lat": north[0], "lng": north[1] })  # to close the shape
+        mapShapePoints.append({ "lat": north[0], "lng": north[1] })
 
         # Also extract lat/lng values if needed
         max_lat = north[0]
@@ -396,10 +425,10 @@ def generate_heatmap(clusters, filtered_csv_data, grid_size, marker_radius, blur
         colored_heatmap = cv2.applyColorMap(normalized_heatmap, cv2.COLORMAP_JET)
         
         # --- Draw white lines connecting bounding box corners in order: north → east → south → west → north ---
-        north = latlng_to_grid_coords(*north)
-        east = latlng_to_grid_coords(*east)
-        south = latlng_to_grid_coords(*south)
-        west = latlng_to_grid_coords(*west)
+        north = latlng_to_grid_coords(*north[:2])
+        east = latlng_to_grid_coords(*east[:2])
+        south = latlng_to_grid_coords(*south[:2])
+        west = latlng_to_grid_coords(*west[:2])
 
         # Define polygon points
         corner_points = [north, east, south, west, north]

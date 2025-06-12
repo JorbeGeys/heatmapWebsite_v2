@@ -135,7 +135,7 @@ def cluster_annotations(images_metadata, distance_threshold_m=0.5):
                 "lng": lng
             })
 
-    print("🌎all_prjected_points",all_projected_points)
+    print("🥵all projected points", all_projected_points)
     # Convert lat/lng to meters (flat projection for clustering)
     coords_meters = np.array([
         [lat * 111320, lng * 111320 * math.cos(deg2rad(lat))]
@@ -156,3 +156,153 @@ def cluster_annotations(images_metadata, distance_threshold_m=0.5):
 
     return filtered_clusters
 
+
+def generate_m_in_image(altitude_ft):
+    fov_x_deg = 70
+    fov_y_deg = 55
+    
+    altitude_m = altitude_ft * 0.3048
+
+    fov_x_rad = math.radians(fov_x_deg)
+    fov_y_rad = math.radians(fov_y_deg)
+
+    #calculate the total meters horizontal en vertical in the img from the drone to one side
+    horizontal_meters = math.tan(fov_x_rad/2) * altitude_m  #goedgekeurd door Jeff
+    vertical_meters = math.tan(fov_y_rad/2) * altitude_m
+    
+    return horizontal_meters, vertical_meters
+
+
+def northernPoint(drone_lat, drone_lng, altitude_ft, heading_deg):
+    horizontal_meters, vertical_meters = generate_m_in_image(altitude_ft)
+    
+    heading_rad = math.radians(heading_deg)
+    
+    if 0 <= heading_deg < 90:
+        north_offset_m_x = horizontal_meters * math.sin(heading_rad)
+        north_offset_m_y = vertical_meters * math.cos(heading_rad)
+        
+    elif 90 <= heading_deg < 180:
+        north_offset_m_x = horizontal_meters * math.sin(PI - heading_rad)
+        north_offset_m_y = vertical_meters * math.cos(PI - heading_rad)
+        
+    elif 180 <= heading_deg < 270:
+        north_offset_m_x = horizontal_meters * math.sin(heading_rad - PI)
+        north_offset_m_y = vertical_meters * math.cos(heading_rad - PI)
+        
+    elif 270 <= heading_deg < 360:
+        north_offset_m_x = horizontal_meters * math.sin((2 * PI) - heading_rad)
+        north_offset_m_y = vertical_meters * math.cos((2 * PI) - heading_rad)
+    
+    north_offset_m = north_offset_m_x + north_offset_m_y
+    
+    meters_per_deg_lat = 111194.9 
+
+    # Convert meter offsets to degree offsets
+    delta_lat = north_offset_m / meters_per_deg_lat
+
+    # Compute new lat
+    estimated_lat = drone_lat + delta_lat
+    
+    return estimated_lat
+
+def easthernPoint(drone_lat, drone_lng, altitude_ft, heading_deg):
+    horizontal_meters, vertical_meters = generate_m_in_image(altitude_ft)
+    
+    heading_rad = math.radians(heading_deg)
+    
+    if 0 <= heading_deg < 90:
+        east_offset_m_x = horizontal_meters * math.cos(heading_rad)
+        east_offset_m_y = vertical_meters * math.sin(heading_rad)
+        
+    elif 90 <= heading_deg < 180:
+        east_offset_m_x = horizontal_meters * math.cos(PI - heading_rad)
+        east_offset_m_y = vertical_meters * math.sin(PI - heading_rad)
+        
+    elif 180 <= heading_deg < 270:
+        east_offset_m_x = horizontal_meters * math.cos(heading_rad - PI)
+        east_offset_m_y = vertical_meters * math.sin(heading_rad - PI)
+        
+    elif 270 <= heading_deg < 360:
+        east_offset_m_x = horizontal_meters * math.cos((2 * PI) - heading_rad)
+        east_offset_m_y = vertical_meters * math.sin((2 * PI) - heading_rad)
+    
+    east_offset_m = east_offset_m_x + east_offset_m_y
+    
+    drone_lat_rad = math.radians(drone_lat)
+    
+    meters_per_deg_lng = 111194.9 * math.cos(drone_lat_rad)
+
+    delta_lng = east_offset_m / meters_per_deg_lng
+
+    estimated_lng = drone_lng + delta_lng
+    
+    return estimated_lng
+
+
+def southernPoint(drone_lat, drone_lng, altitude_ft, heading_deg):
+    horizontal_meters, vertical_meters = generate_m_in_image(altitude_ft)
+    
+    heading_rad = math.radians(heading_deg)
+    
+    if 0 <= heading_deg < 90:
+        north_offset_m_x = horizontal_meters * math.sin(heading_rad)
+        north_offset_m_y = vertical_meters * math.cos(heading_rad)
+        
+    elif 90 <= heading_deg < 180:
+        north_offset_m_x = horizontal_meters * math.sin(PI - heading_rad)
+        north_offset_m_y = vertical_meters * math.cos(PI - heading_rad)
+        
+    elif 180 <= heading_deg < 270:
+        north_offset_m_x = horizontal_meters * math.sin(heading_rad - PI)
+        north_offset_m_y = vertical_meters * math.cos(heading_rad - PI)
+        
+    elif 270 <= heading_deg < 360:
+        north_offset_m_x = horizontal_meters * math.sin((2 * PI) - heading_rad)
+        north_offset_m_y = vertical_meters * math.cos((2 * PI) - heading_rad)
+    
+    north_offset_m = north_offset_m_x + north_offset_m_y
+    
+    meters_per_deg_lat = 111194.9 
+
+    # Convert meter offsets to degree offsets
+    delta_lat = north_offset_m / meters_per_deg_lat
+
+    # Compute new lat
+    estimated_lat = drone_lat - delta_lat
+    
+    return estimated_lat
+
+
+def westhernPoint(drone_lat, drone_lng, altitude_ft, heading_deg):
+    horizontal_meters, vertical_meters = generate_m_in_image(altitude_ft)
+    
+    heading_rad = math.radians(heading_deg)
+    
+    if 0 <= heading_deg < 90:
+        east_offset_m_x = horizontal_meters * math.cos(heading_rad)
+        east_offset_m_y = vertical_meters * math.sin(heading_rad)
+        
+    elif 90 <= heading_deg < 180:
+        east_offset_m_x = horizontal_meters * math.cos(PI - heading_rad)
+        east_offset_m_y = vertical_meters * math.sin(PI - heading_rad)
+        
+    elif 180 <= heading_deg < 270:
+        east_offset_m_x = horizontal_meters * math.cos(heading_rad - PI)
+        east_offset_m_y = vertical_meters * math.sin(heading_rad - PI)
+        
+    elif 270 <= heading_deg < 360:
+        east_offset_m_x = horizontal_meters * math.cos((2 * PI) - heading_rad)
+        east_offset_m_y = vertical_meters * math.sin((2 * PI) - heading_rad)
+    
+    east_offset_m = east_offset_m_x + east_offset_m_y
+    
+    drone_lat_rad = math.radians(drone_lat)
+    
+    meters_per_deg_lng = 111194.9 * math.cos(drone_lat_rad)
+
+    delta_lng = east_offset_m / meters_per_deg_lng
+
+    estimated_lng = drone_lng - delta_lng
+    
+    return estimated_lng

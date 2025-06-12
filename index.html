@@ -23,14 +23,21 @@
     </div>
 
     <div id="smallText">
-      <p>Elke samenkomst zorgt op korte tijd voor enorm veel afval dat overal blijft liggen.
-          C.A.V.A. brengt dit in kaart voor de organisatie.</p>
+      <p>Elke samenkomst zorgt op korte tijd voor enorm veel afval dat overal blijft liggen. C.A.V.A. brengt dit in kaart voor de organisatie.</p>
     </div>
   </div>
 
+  <div id="explenationWithImage">
+    <p id="generalExplanation">C.A.V.A. maakt gebruik van AI-gestuurde computervisie-technologie om afval op de grond te detecteren, in kaart te brengen en te monitoren. Op die manier helpt het platform mee aan schonere en efficiëntere omgevingen. Deze oplossing is ideaal voor festivalorganisatoren, marktverantwoordelijken en iedereen die grote openluchtevenementen beheert en meer inzicht wil krijgen in hun afvalbeheersysteem.
+    </p>
+    <img id="explenationImage" src="./static/images/Screenshot_googleMaps_heatmap.jpeg" alt="Image failed to load.">
+  </div>
+
+
   <div class="dropZones">
     <div class="drop-zone" id="imageDropZone" onclick="document.getElementById('imageUpload').click()">
-      <p>Upload hier een reeks top-down foto's in de volgorde waarin ze genomen zijn.</p>
+      <p>Gebruik top-down beelden van maximaal 7 meter hoogte, ingediend in originele volgorde.
+</p>
       <div class="drop-message">
         <p id="imageDropMessageText">SELECT IMAGES HERE</p>
       </div>
@@ -38,14 +45,14 @@
     </div>
 
     <div class="drop-zone" id="csvDropZone" onclick="document.getElementById('csvUpload').click()">
-      <p>Upload hier de csv flight-data van de vlucht waarin de foto's genomen zijn.</p>
+      <p>Upload de CSV-flightdata van de vlucht waarin de beelden zijn genomen.</p>
       <div class="drop-message yellow">
         <p id="csvDropMessageText">SELECT CSV HERE</p>
       </div>
       <p>Max. 1 bestand.</p>
     </div>
 
-    <div id="submitBtnDots">
+    <div > <!--id="submitBtnDots"-->
       <div id="submitButton" onclick="displayImages()"><p>SUBMIT & VISUALIZE</p></div>
     </div>
   </div>
@@ -54,6 +61,50 @@
   <input type="file" id="csvUpload" class="dontShow" accept=".csv" />
 
   <p id="loadingStatus" class="dontShow"></p>
+
+  <div id="loadingAnimation">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+      <defs>
+        <path id="motion-path" d="M52,100 A24,24 0 0 1 100,100 A24,24 0 0 0 148,100 A24,24 0 0 0 100,100 A24,24 0 0 1 52,100 z" />
+      </defs>
+
+      <ellipse rx="8" ry="8" fill="black">
+        <animateMotion repeatCount="indefinite" calcMode="spline" dur="1400ms" keyTimes="0; 0.5; 1" keyPoints="0; 0.5; 1" keySplines="0.6,0.3,0.4,0.7; 0.6,0.3,0.4,0.7" rotate="auto">
+          <mpath href="#motion-path" />
+        </animateMotion>
+
+        <animate attributeName="rx" repeatCount="indefinite" dur="1400ms" keyTimes="0; .25; .5; .75; 1" values="8; 8.4; 8; 8.4; 8" />
+
+        <animate attributeName="ry" repeatCount="indefinite" dur="1400ms" keyTimes="0; .25; .5; .75; 1" values="8; 7.6; 8; 7.6; 8" />
+      </ellipse>
+
+      <ellipse rx="8" ry="8" fill="black">
+        <animateMotion repeatCount="indefinite" calcMode="spline" dur="1400ms" begin="-466.6666ms" keyTimes="0; 0.5; 1" keyPoints="0; 0.5; 1" keySplines="0.6,0.3,0.4,0.7; 0.6,0.3,0.4,0.7" rotate="auto">
+          <mpath href="#motion-path" />
+        </animateMotion>
+
+        <animate attributeName="rx" repeatCount="indefinite" dur="1400ms" keyTimes="0; .25; .5; .75; 1" values="8; 8.4; 8; 8.4; 8" begin="-466.6666ms" />
+
+        <animate attributeName="ry" repeatCount="indefinite" dur="1400ms" keyTimes="0; .25; .5; .75; 1" values="8; 7.6; 8; 7.6; 8" begin="-466.6666ms" />
+      </ellipse>
+
+      <ellipse rx="8" ry="8" fill="black">
+        <animateMotion repeatCount="indefinite" calcMode="spline" dur="1400ms" begin="-933.3333ms" keyTimes="0; 0.5; 1" keyPoints="0; 0.5; 1" keySplines="0.6,0.3,0.4,0.7; 0.6,0.3,0.4,0.7" rotate="auto">
+          <mpath href="#motion-path" />
+        </animateMotion>
+
+        <animate attributeName="rx" repeatCount="indefinite" dur="1400ms" keyTimes="0; .25; .5; .75; 1" values="8; 8.4; 8; 8.4; 8" begin="-933.3333ms" />
+
+        <animate attributeName="ry" repeatCount="indefinite" dur="1400ms" keyTimes="0; .25; .5; .75; 1" values="8; 7.6; 8; 7.6; 8" begin="-933.3333ms" />
+      </ellipse>
+    </svg>
+  </div>
+
+  <!-- Progress bar container -->
+  <div id="progress-container" class="dontShow">
+    <div id="progress-bar"></div>
+  </div>
+
 
   <div id="mainBody" class="dontShow">
     <div id="heatmapHero">
@@ -66,11 +117,11 @@
       <div id="content">
         <div class="contentItem">
           <div class="circle low"></div>
-          <p>LOW</p>
+          <p>LAAG</p>
         </div>
         <div class="contentItem">
           <div class="circle mid-low"></div>
-          <p>MID-LOW</p>
+          <p>MID-LAAG</p>
         </div>
         <div class="contentItem">
           <div class="circle mid"></div>
@@ -78,24 +129,24 @@
         </div>
         <div class="contentItem">
           <div class="circle mid-high"></div>
-          <p>MID-HIGH</p>
+          <p>MID-HOOG</p>
         </div>
         <div class="contentItem">
           <div class="circle high"></div>
-          <p>HIGH</p>
+          <p>HOOG</p>
         </div>
         <div class="contentItem">
           <div class="square"></div>
-          <p>AREA</p>
+          <p>ZONE</p>
         </div>
       </div>
       <div id="maps"></div>
       <div id="mapBtns">
-        <button id="exportGeoJSON" onclick="exportToKML()"><p>DOWNLOAD POINTS</p></button>
+        <button id="exportGeoJSON" onclick="exportToKML()"><p>DOWNLOAD PUNTEN</p></button>
         <a id="googleMyMaps" href="https://www.google.com/maps/d/" target="_blank"><p>OPEN GOOGLE MY MAPS</p></a>
       </div>
     </div>
-    <p id="downloadPointsText">Download the points as a KML file and upload them to Google My Maps to always have them at hand on any device.</p>
+    <p id="downloadPointsText">Download de punten als een KML-bestand en upload ze naar Google My Maps om ze altijd bij de hand te hebben op elk apparaat.</p>
   <script>(g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${
   c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})
       ({key: "AIzaSyCObA6sw3zvc9_kxFVqf9xmvh3lIViUSdg", v: "weekly"});</script>
@@ -106,7 +157,8 @@
       <div>
         <h2 class="mosaicOrImagesTitle">STITCHED MOSAIC</h2>
         <p>
-          A stitched mosaic image is a large, composite image created by seamlessly combining multiple smaller, overlapping images into a single, continuous view. Users can use it to visualize large areas—such as satellite imagery, microscope slides, or architectural plans—in high detail without losing context across different regions.
+          Een samengestelde mozaïekafbeelding is een grote, samengestelde afbeelding die naadloos meerdere kleinere, overlappende beelden combineert tot één doorlopend geheel. Gebruikers kunnen hiermee grote gebieden visualiseren—zoals satellietbeelden, microscoopslides of architecturale plannen—in hoge detailgraad zonder het overzicht tussen verschillende delen te verliezen.
+        
         </p>
       </div>
       <div id="mosaicContainer"></div>
@@ -141,9 +193,8 @@
   </div>
 
   <footer>
-    <p>C.A.V.A. uses AI-powered computer vision technology to detect, map, and monitor ground-level waste helping create cleaner, more efficient environments. This platform is ideal for festival organizers, market managers, and anyone responsible for large open-air events who want deeper insight into their waste management systems.</p>
-    <p>© 2025 C.A.V.A. All rights reserved. All data, images, and information uploaded to this site are strictly confidential and will never be stored, sold, or shared.</p>
-
+    <p>© 2025 C.A.V.A. Alle rechten voorbehouden. Alle gegevens, afbeeldingen en informatie die naar deze site worden geüpload, zijn strikt vertrouwelijk en zullen nooit worden opgeslagen, verkocht of gedeeld.
+</p>
     </footer>
 
   <div id="fullscreenOverlay" class="fullscreen-overlay">
@@ -165,6 +216,9 @@
   const dropZonesContainer = document.querySelector('.dropZones');
   const submitButton = document.getElementById('submitButton');
   const mainBody = document.getElementById('mainBody');
+  const loadingAnimation = document.getElementById('loadingAnimation');
+  let droppedCsv = null;
+  let droppedImages = [];
   let originalHeight = "3840px";
   let latSum = 0;
   let lngSum = 0;
@@ -172,6 +226,14 @@
   let map_center_y;
   let clusterCenters;
   let mapShapePoints;
+  const timePerImage = 550;
+
+
+
+  const progressContainer = document.getElementById('progress-container');
+  const progressBar = document.getElementById('progress-bar');
+
+
 
     //google maps
     /**
@@ -191,7 +253,7 @@
 
       const map = new Map(document.getElementById("maps"), {
         center: { lat, lng },
-        zoom: 15,
+        zoom: 20,
       });
 
       const mapShape = new google.maps.Polygon({
@@ -215,7 +277,7 @@
       }
 
       estimatedCoords = [
-      [51.26589710174406, 4.60997538040839], [51.265897156250254, 4.609975302721809], [51.26590532993971, 4.609964268502327], [51.26590535886613, 4.609964233156844], [51.265911078621684, 4.609954911728193], [51.26591803686532, 4.6099465680449985], [51.26594188436007, 4.6099199856528825], [51.265923299806204, 4.6099143014685495], [51.265920508701726, 4.609929951773292], [51.2659235897467, 4.6099451856082885], [51.26592437545626, 4.609919465087619], [51.265914228067395, 4.609957162340404], [51.26591500887507, 4.6099321015621255], [51.26588714143145, 4.6099633585520605], [51.26591190038351, 4.609966360973135], [51.26590201326493, 4.609978220160169], [51.26589578514153, 4.609985836525024], [51.26588893266256, 4.60999919603659], [51.26588043100579, 4.610008966489872], [51.26588037866183, 4.610008987376733]      
+      [51.26606978861851, 4.609832256564229], [51.266082007485466, 4.609867191717625], [51.26608515662533, 4.609892758461326], [51.26608484861691, 4.609853829238785], [51.26610583045168, 4.609878220981482], [51.26607231739786, 4.60989135250024], [51.26608711185927, 4.609901053669149], [51.26607574991987, 4.60991336827978], [51.26607668312705, 4.609917312824018], [51.26608207270148, 4.609935326186513], [51.26608041160384, 4.609930790910371], [51.26607477858418, 4.609916045606688], [51.266080788688875, 4.609951696563461], [51.26608594502929, 4.609942828598706], [51.26607735736399, 4.609883436140536], [51.26605207465148, 4.609909358619088], [51.26607042179105, 4.609906358920909], [51.266065278458164, 4.609890751867326], [51.26604676068469, 4.60989369806033], [51.266046556230435, 4.6098635498081775], [51.266049886950924, 4.609869917232197], [51.26605206468277, 4.609876064298437], [51.26604138187698, 4.609873021862187], [51.26604598738584, 4.60985128724327], [51.2660365623749, 4.609862552601118]      
       ];
 
       estimatedCoords.forEach(coord => {
@@ -225,7 +287,7 @@
       console.log("estimatedCoords", estimatedCoords);
 
       // Build GeoJSON features from clusterCenters
-      const features = estimatedCoords.map((center, index) => ({
+      const features = clusterCenters.map((center, index) => ({
         type: "Feature",
         geometry: {
           type: "Point",
@@ -287,10 +349,6 @@
       URL.revokeObjectURL(url);
     }
 
-
-
-
-
     function openFullscreenImage(imageUrl) {
     fullscreenImage.src = imageUrl;
     fullscreenOverlay.style.display = 'flex';
@@ -315,11 +373,23 @@
     }
   });
 
+function updateProgress(handledImages, totalImages) {
+  let progress = (handledImages / totalImages) * 100;
+  progressBar.style.width = progress + "%";
+  if( progress == 100){
+    loadingStatus.textContent = "Processing detections and generating outputs...";
+    loadingAnimation.style.display = 'flex';
+    progressContainer.classList.add('dontShow');
+  }
+}
+
+
   async function displayImages() {
 
   dropZonesContainer.classList.add('dontShow');
   submitButton.classList.add('dontShow');
   loadingStatus.classList.remove('dontShow'); // Show the loading status
+  progressContainer.classList.remove('dontShow');
   mainBody.classList.add('dontShow'); // Ensure mainBody is hidden initially
 
   imageContainer.innerHTML = "";
@@ -328,8 +398,23 @@
   loadingStatus.className = "loading";
   loadingStatus.textContent = "Uploading images and CSV...";
 
-  const imageFiles = fileInput.files;
-  const csvFile = csvInput.files[0];
+  //let imageFiles = fileInput.files;
+  let imageFiles = [];
+  if(fileInput.files && fileInput.files.length > 0){
+    imageFiles = Array.from(fileInput.files).reverse();  //eerst array maken en dan reversen
+  }
+  else{
+    console.log("droppedImages", droppedImages);
+    imageFiles = droppedImages;
+  }
+
+  let csvFile = null;
+  if(csvInput.files[0]){
+    csvFile = csvInput.files[0];
+  }
+  else{
+    csvFile = droppedCsv;
+  }
 
   if (!imageFiles.length) {
     loadingStatus.textContent = "Please select some images first.";
@@ -352,10 +437,17 @@
   const formData = new FormData();
   for (let i = 0; i < imageFiles.length; i++) {
     formData.append('images', imageFiles[i]);
+    
   }
   formData.append('csv_file', csvFile);
 
   try {
+    for (let i = 0; i < imageFiles.length; i++) {
+      setTimeout(() => {
+        updateProgress(i+1, imageFiles.length);
+      }, i * timePerImage);
+    }
+    
     const response = await fetch('http://127.0.0.1:5500/upload', {
       method: 'POST',
       body: formData
@@ -365,13 +457,15 @@
       throw new Error(`Server returned status ${response.status}`);
     }
 
-    loadingStatus.textContent = "Processing detections and generating outputs...";
+    
 
     const data = await response.json();  // Wait until the full JSON is received
     loadingStatus.textContent = "Done!";
     loadingStatus.className = "success";
+    loadingAnimation.style.display = 'none';
 
     loadingStatus.classList.add('dontShow');
+    
     mainBody.classList.remove('dontShow');
     
     if (data.annotated_images_meta && Array.isArray(data.annotated_images_meta)) {
@@ -466,32 +560,21 @@
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Image Drop Zone Elements ---
-    const imageDropZone = document.getElementById('imageDropZone');
     const imageDropMessageText = document.getElementById('imageDropMessageText');
+    const csvDropMessageText = document.getElementById('csvDropMessageText');
 
-    // --- CSV Drop Zone Elements ---
-    const csvDropZone = document.getElementById('csvDropZone');
-    const csvDropMessageText = document.getElementById('csvDropMessageText'); // Corrected ID
 
+    imageDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
 
     imageDropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        imageDropZone.classList.remove('highlight');
         const files = e.dataTransfer.files;
+        droppedImages = files;
+        console.log("droppedImages", droppedImages);
         handleImageFiles(files);
-    });
-
-    imageDropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        imageDropZone.classList.add('highlight');
-    });
-
-    imageDropZone.addEventListener('dragleave', (e) => {
-        e.stopPropagation();
-        imageDropZone.classList.remove('highlight');
     });
 
     fileInput.addEventListener('change', (e) => {
@@ -509,25 +592,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // Handle dropped files for CSV
+    csvDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
     csvDropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        csvDropZone.classList.remove('highlight-yellow');
         const files = e.dataTransfer.files;
+        droppedCsv = Array.from(files).find(file => file.type === 'text/csv' || file.name.endsWith('.csv'));
         handleCsvFiles(files);
     });
-
-    csvDropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        csvDropZone.classList.add('highlight-yellow');
-    });
-
-    csvDropZone.addEventListener('dragleave', (e) => {
-        e.stopPropagation();
-        csvDropZone.classList.remove('highlight-yellow');
-    });
-
 
     // Handle files selected via CSV input
     csvInput.addEventListener('change', (e) => {
@@ -552,10 +627,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
   const minScale = 0.5;
-  const scaleMultiplier = 3;
+  const scaleMultiplier = 2;
   let scaleFactor = 1;
   window.addEventListener('scroll', () => {
-    let scrollProgress = window.scrollY / document.getElementById('heatmapHero').clientHeight;
+    let scrollProgress = (window.scrollY-400) / document.getElementById('heatmapHero').clientHeight;
     scaleFactor = Math.max(0.5, 1 - (scrollProgress * scaleMultiplier * (1 - minScale)));
     document.querySelector('#heatmapContainer img').style.transform = `scale(${scaleFactor})`;
     document.querySelector('#heatmapContainer').style.height = `${originalHeight * scaleFactor *0.4}px`;
